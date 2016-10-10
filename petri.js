@@ -1,4 +1,3 @@
-
 function petri(element, resolution) {
     // Equality comparison for elements
     var getKey = function(d) { return d.y * resolution + d.x; }
