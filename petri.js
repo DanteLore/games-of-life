@@ -14,6 +14,7 @@ function petri(element, resolution) {
     var xScale = d3.scale.linear().range([0, width]).domain([0, resolution]);
     var yScale = d3.scale.linear().range([height, 0]).domain([0, resolution]);
     var cScale = d3.scale.linear().range(["#f7fcb9", "#31a354"]).domain([0, 100]);
+    var eScale = d3.scale.linear().range(["#ece7f2", "#2c7fb8"]).domain([0, 150]);
 
     var svg = d3.select(element).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -46,7 +47,7 @@ function petri(element, resolution) {
         lawn = [];
         for (var row=0; row<resolution; row++) {
             for (var col=0; col<resolution; col++) {
-                var grass = 20 + Math.round(Math.random() * 10);
+                var grass = 25 + Math.round(Math.random() * 10);
                 var cell = { x:col, y:row, grass:grass};
                 lawn.push(cell);
             }
@@ -89,6 +90,29 @@ function petri(element, resolution) {
         }
     }
 
+    function moveBestOf(creature, count) {
+        var maybe = []
+        for(var i = 0; i < count; i++) {
+            var move = moves[Math.round(Math.random() * 7)]; // Could be the same. Who cares?
+            var x = creature.x + move.dx;
+            var y = creature.y + move.dy;
+
+            if(x >= 0 && x < resolution && y >= 0 && y < resolution) {
+                var tile = lawnTileAt(x, y);
+                maybe.push(tile);
+            }
+        }
+
+        if(maybe.length === 0) {
+            return;
+        }
+
+        maybe.sort(function(a, b) { return b.grass - a.grass; })
+        var location = maybe[0];
+        creature.x = location.x;
+        creature.y = location.y;
+    }
+
     function creatureLife() {
         creatures.forEach(function(creature) {
             // Eat if possible
@@ -99,7 +123,7 @@ function petri(element, resolution) {
 
             // If nothing to eat then try to move
             if(eat <= 0) {
-                moveRandom(creature);
+                moveBestOf(creature, 3);
             }
 
             // Multiply
@@ -133,22 +157,31 @@ function petri(element, resolution) {
     }
 
     function redrawCreatures() {
-        circle = circle.data(creatures);
+        circle = circle.data(creatures, getKey);
         // Enter
         circle.enter().append("circle")
 
         // Update
-        circle.attr("cx", function(d) {
-              return xScale(d.x) + radius;
-        })
-        .attr("cy", function(d) {
-            return yScale(d.y) + radius;
-        })
-        .style("fill", "red")
-        .attr("r", radius - 2);
+        circle
+            .transition()
+                .duration(100)
+                .attr("cx", function(d) {
+                      return xScale(d.x) + radius;
+                })
+                .attr("cy", function(d) {
+                    return yScale(d.y) + radius;
+                })
+                .style("fill", function(d){
+                    return eScale(d.energy);
+                })
+                .style("stroke", "darkblue")
+                .attr("r", radius - 2);
 
         // Exit
-        circle.exit().remove();
+        circle.exit()
+            .transition()
+                .duration(50)
+                .attr("r", 0).remove();
     }
 
     function redrawLawn() {
@@ -177,7 +210,7 @@ function petri(element, resolution) {
 
     var iterations = 0;
     (function() {
-        if(lawn.length === 0 || ++iterations > 6000){
+        if(creatures.length === 0 || ++iterations > 6000){
             initLawn();
             initCreatures();
             iterations = 0;
