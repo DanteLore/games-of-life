@@ -208,19 +208,24 @@ function petri(element, resolution) {
         square.exit().remove();
     }
 
+    var populationHistory = [];
     var iterations = 0;
+    var chart = new PopChart(element);
     (function() {
-        if(creatures.length === 0 || ++iterations > 6000){
+        if(creatures.length === 0 || ++iterations > 20000){
             initLawn();
             initCreatures();
             iterations = 0;
+            populationHistory = [];
         }
         else {
             lawnLife();
             creatureLife();
+            populationHistory.push({iteration:iterations, population:creatures.length});
         }
         redrawLawn();
         redrawCreatures();
+        chart.update(populationHistory);
         setTimeout(arguments.callee,100);
     })();
 }
