@@ -3,6 +3,7 @@ function petri(element, resolution) {
     initialCreatureCount = 50;
     energyLossPerTurn = 10;
     maxEatAmount = 30;
+    foodSearchTries = 8;
 
     // Equality comparison for elements
     var getKey = function(d) { return d.y * resolution + d.x; }
@@ -123,7 +124,7 @@ function petri(element, resolution) {
 
             // If nothing to eat then try to move
             if(eat <= 0) {
-                moveBestOf(creature, 3);
+                moveBestOf(creature, foodSearchTries);
             }
 
             // Multiply
