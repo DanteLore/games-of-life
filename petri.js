@@ -26,133 +26,17 @@ function petri(element, resolution) {
     var square = svg.selectAll("rect");
 
     var radius = (width / resolution) / 2;
-    var lawn = [];
+    var lawn = 0;
     var creatures = [];
-
-    function initCreatures(){
-        for(var i = 0; i < initialCreatureCount; ++i){
-            var col = Math.round(Math.random() * (resolution - 1));
-            var row = Math.round(Math.random() * (resolution - 1));
-            var creature = {
-                x:col,
-                y:row,
-                energy:100,
-                alive:1,
-                pregnant:0
-            };
-            creatures.push(creature);
-        }
-    }
-
-    function initLawn() {
-        lawn = [];
-        for (var row=0; row<resolution; row++) {
-            for (var col=0; col<resolution; col++) {
-                var grass = 25 + Math.round(Math.random() * 10);
-                var cell = { x:col, y:row, grass:grass};
-                lawn.push(cell);
-            }
-        }
-    }
-
-    function lawnLife() {
-        // Feed the grass
-        for(var i = 0; i < feedAmount; ++i) {
-            d = lawn[Math.round(Math.random() * (lawn.length - 1))]
-            if(d.grass < 100){
-                d.grass++;
-            }
-        }
-    }
-
-    function lawnTileAt(x, y) {
-        index = (y * resolution) + x;
-        return lawn[index];
-    }
-
-    var moves = [
-        {dx: -1, dy: -1}, // NE
-        {dx:  0, dy: -1}, // N
-        {dx:  1, dy: -1}, // NW
-        {dx:  1, dy:  0}, // W
-        {dx:  1, dy:  1}, // SW
-        {dx:  0, dy:  1}, // S
-        {dx: -1, dy:  1}, // SE
-        {dx: -1, dy:  0}, // E
-    ];
-
-    function moveRandom(creature) {
-        move = moves[Math.round(Math.random() * 7)]
-        newX = creature.x + move.dx;
-        newY = creature.y + move.dy;
-        if(newX >= 0 && newX < resolution && newY >= 0 && newY < resolution) {
-            creature.x = newX;
-            creature.y = newY;
-        }
-    }
-
-    function moveBestOf(creature, count) {
-        var maybe = []
-        for(var i = 0; i < count; i++) {
-            var move = moves[Math.round(Math.random() * 7)]; // Could be the same. Who cares?
-            var x = creature.x + move.dx;
-            var y = creature.y + move.dy;
-
-            if(x >= 0 && x < resolution && y >= 0 && y < resolution) {
-                var tile = lawnTileAt(x, y);
-                maybe.push(tile);
-            }
-        }
-
-        if(maybe.length === 0) {
-            return;
-        }
-
-        maybe.sort(function(a, b) { return b.grass - a.grass; })
-        var location = maybe[0];
-        creature.x = location.x;
-        creature.y = location.y;
-    }
 
     function creatureLife() {
         creatures.forEach(function(creature) {
-            // Eat if possible
-            tile = lawnTileAt(creature.x, creature.y);
-            var eat = Math.min(maxEatAmount, tile.grass);
-            creature.energy += eat;
-            tile.grass = Math.max(0, tile.grass - eat);
-
-            // If nothing to eat then try to move
-            if(eat <= 0) {
-                moveBestOf(creature, foodSearchTries);
-            }
-
-            // Multiply
-            if(creature.energy >= 200){
-                creature.pregnant = 1;
-                creature.energy -= 100;
-            }
-
-            // Burn energy or die!
-            creature.energy -= energyLossPerTurn;
-            if(creature.energy <= 0) {
-                creature.alive = 0;
-            }
+            creature.live(lawn, maxEatAmount, foodSearchTries, energyLossPerTurn)
         });
 
-        creatures.filter(function(creature) { return creature.pregnant; })
-            .forEach(function(parent) {
-                parent.pregnant = 0;
-                baby = {
-                    x: parent.x,
-                    y: parent.y,
-                    energy: 100,
-                    alive: 1,
-                    pregnant: 0
-                }
-                moveRandom(baby);
-                creatures.push(baby);
-            });
+        creatures.forEach(function(creature) {
+            creature.giveBirth(lawn).forEach(function(baby){ creatures.push(baby); });
+        });
 
         creatures = creatures.filter(function(creature) { return creature.alive; })
     }
@@ -186,7 +70,7 @@ function petri(element, resolution) {
     }
 
     function redrawLawn() {
-        square = square.data(lawn, getKey);
+        square = square.data(lawn.lawn, getKey);
         // Enter
         square.enter().append("rect");
         // Update
@@ -214,13 +98,13 @@ function petri(element, resolution) {
     var chart = new PopChart(element);
     (function() {
         if(creatures.length === 0 || ++iterations > 20000){
-            initLawn();
-            initCreatures();
+            lawn = new Lawn(resolution - 1, resolution - 1);
+            creatures = Herbivore.initPopulation(initialCreatureCount, resolution - 1, resolution - 1);
             iterations = 0;
             populationHistory = [];
         }
         else {
-            lawnLife();
+            lawn.feed(feedAmount);
             creatureLife();
             populationHistory.push({iteration:iterations, population:creatures.length});
         }

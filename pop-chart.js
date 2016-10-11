@@ -32,7 +32,7 @@ PopChart.prototype.update = function(data) {
 
     data.splice(0, data.length - 1000)
 
-    this.xScale.domain([0, d3.max(data, function(d) { return d.iteration; })]);
+    this.xScale.domain([d3.min(data, function(d) { return d.iteration; }), d3.max(data, function(d) { return d.iteration; })]);
     this.yScale.domain([0, d3.max(data, function(d) { return d.population; })]);
 
     if(data.length == 2){
