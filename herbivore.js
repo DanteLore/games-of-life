@@ -1,9 +1,17 @@
-function Herbivore(xx, yy){
-    this.x = xx;
-    this.y = yy;
+function Herbivore(x, y, lawn){
+
+    this.energyLossPerTurn = 10;
+    this.maxEatAmount = 30;
+    this.foodSearchTries = 8;
+
+    this.x = x;
+    this.y = y;
+    this.lawn;
     this.energy = 100;
     this.alive = 1;
     this.pregnant = 0;
+
+    this.colorScale = d3.scale.linear().range(["#ece7f2", "#2c7fb8"]).domain([0, 150]);
 }
 
 Herbivore.moves = [
@@ -17,27 +25,26 @@ Herbivore.moves = [
         {dx: -1, dy:  0}, // E
     ];
 
-Herbivore.initPopulation = function(count, maxX, maxY) {
-    var creatures = []
+Herbivore.initPopulation = function(count, lawn, creatures) {
     for(var i = 0; i < count; ++i){
-        var col = Math.round(Math.random() * maxX);
-        var row = Math.round(Math.random() * maxY);
-        var creature = new Herbivore(col, row);
+        var col = Math.round(Math.random() * lawn.maxX);
+        var row = Math.round(Math.random() * lawn.maxY);
+        var creature = new Herbivore(col, row, lawn);
         creatures.push(creature);
     }
     return creatures;
 };
 
-Herbivore.prototype.live = function(lawn, maxEatAmount, foodSearchTries, energyLossPerTurn) {
+Herbivore.prototype.live = function(lawn, creatures) {
     // Eat if possible
     tile = lawn.tileAt(this.x, this.y);
-    var eat = Math.min(maxEatAmount, tile.grass);
+    var eat = Math.min(this.maxEatAmount, tile.grass);
     this.energy += eat;
     tile.grass = Math.max(0, tile.grass - eat);
 
     // If nothing to eat then try to move
     if(eat <= 0) {
-        this.moveBestOf(lawn, foodSearchTries);
+        this.moveBestOf(lawn, this.foodSearchTries);
     }
 
     // Multiply
@@ -47,7 +54,7 @@ Herbivore.prototype.live = function(lawn, maxEatAmount, foodSearchTries, energyL
     }
 
     // Burn energy or die!
-    this.energy -= energyLossPerTurn;
+    this.energy -= this.energyLossPerTurn;
     if(this.energy <= 0) {
         this.alive = 0;
     }
@@ -95,4 +102,8 @@ Herbivore.prototype.moveRandom = function(lawn) {
         this.x = newX;
         this.y = newY;
     }
+};
+
+Herbivore.prototype.getColor = function() {
+    return this.colorScale(this.energy);
 };

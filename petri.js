@@ -1,9 +1,7 @@
 function petri(element, resolution) {
     feedAmount = 500;
-    initialCreatureCount = 50;
-    energyLossPerTurn = 10;
-    maxEatAmount = 30;
-    foodSearchTries = 8;
+    initialHerbivoreCount = 50;
+    initialCarnivoreCount = 1;
 
     // Equality comparison for elements
     var getKey = function(d) { return d.y * resolution + d.x; }
@@ -15,7 +13,6 @@ function petri(element, resolution) {
     var xScale = d3.scale.linear().range([0, width]).domain([0, resolution]);
     var yScale = d3.scale.linear().range([height, 0]).domain([0, resolution]);
     var cScale = d3.scale.linear().range(["#f7fcb9", "#31a354"]).domain([0, 100]);
-    var eScale = d3.scale.linear().range(["#ece7f2", "#2c7fb8"]).domain([0, 150]);
 
     var svg = d3.select(element).append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -31,7 +28,7 @@ function petri(element, resolution) {
 
     function creatureLife() {
         creatures.forEach(function(creature) {
-            creature.live(lawn, maxEatAmount, foodSearchTries, energyLossPerTurn)
+            creature.live(lawn, creatures)
         });
 
         creatures.forEach(function(creature) {
@@ -57,7 +54,7 @@ function petri(element, resolution) {
                     return yScale(d.y) + radius;
                 })
                 .style("fill", function(d){
-                    return eScale(d.energy);
+                    return d.getColor();
                 })
                 .style("stroke", "darkblue")
                 .attr("r", radius - 2);
@@ -96,18 +93,18 @@ function petri(element, resolution) {
     var populationHistory = [];
     var iterations = 0;
     var chart = new PopChart(element);
+    lawn = new Lawn(resolution - 1, resolution - 1);
     (function() {
-        if(creatures.length === 0 || ++iterations > 20000){
-            lawn = new Lawn(resolution - 1, resolution - 1);
-            creatures = Herbivore.initPopulation(initialCreatureCount, resolution - 1, resolution - 1);
-            iterations = 0;
-            populationHistory = [];
+        ++iterations;
+        if(creatures.filter(function(c){ return (c instanceof Herbivore); }).length === 0) {
+            creatures = Herbivore.initPopulation(initialHerbivoreCount, lawn, creatures);
         }
-        else {
-            lawn.feed(feedAmount);
-            creatureLife();
-            populationHistory.push({iteration:iterations, population:creatures.length});
+        if(creatures.filter(function(c){ return (c instanceof Carnivore); }).length === 0) {
+            creatures = Carnivore.initPopulation(initialCarnivoreCount, lawn, creatures);
         }
+        lawn.feed(feedAmount);
+        creatureLife();
+        populationHistory.push({iteration:iterations, population:creatures.length});
         redrawLawn();
         redrawCreatures();
         chart.update(populationHistory);
