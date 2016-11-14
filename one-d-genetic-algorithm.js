@@ -60,6 +60,21 @@ function oneDGA(element) {
             .on("click", restartSimulation);
 
         var p = holder.append("p")
+            .text("Population Size: ")
+        p.append("input")
+            .attr("type", "range")
+            .attr("min", "8")
+            .attr("max", "64")
+            .attr("value", popSize)
+            .on("input", function() {
+                popSize = +this.value;
+                d3.select("#popSize").text(popSize);
+            })
+        p.append("span")
+            .attr("id", "popSize")
+            .text(popSize);
+
+        var p = holder.append("p")
             .text("Mutation distance: ")
         p.append("input")
             .attr("type", "range")
@@ -94,7 +109,20 @@ function oneDGA(element) {
         p.append("label")
             .text(" Selection by tournament (kill the worst of two randomly selected individuals)");
 
-
+        var p = holder.append("p")
+            .text("Kill count per generation: ")
+        p.append("input")
+            .attr("type", "range")
+            .attr("min", "1")
+            .attr("max", "16")
+            .attr("value", killCount)
+            .on("input", function() {
+                killCount = +this.value;
+                d3.select("#killCount").text(killCount);
+            })
+        p.append("span")
+            .attr("id", "killCount")
+            .text(killCount);
     }
 
     var maxY = 0;
@@ -224,6 +252,7 @@ function oneDGA(element) {
     }
 
     var popSize = 16;
+    var killCount = 1;
     var data = [];
     var population = [];
     var mutationRate = 50;
@@ -242,8 +271,13 @@ function oneDGA(element) {
 
         population.forEach(function(p) { p.fitness = fitness(p.position, t); })
 
-        population = selection(population)
-        population = breed(population)
+        while(population.length > Math.max(1, popSize - killCount)) {
+            population = selection(population);
+        }
+
+        while(population.length < popSize) {
+            population = breed(population);
+        }
 
         update(data, population);
 
