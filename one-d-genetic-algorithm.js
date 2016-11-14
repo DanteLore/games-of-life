@@ -1,6 +1,6 @@
 function oneDGA(element) {
     var element = element;
-    var margin = {top: 10, right: 10, bottom: 16, left: 16};
+    var margin = {top: 10, right: 10, bottom: 16, left: 20};
     var width = 540 - margin.left - margin.right;
     var height = 350 - margin.top - margin.bottom;
 
@@ -74,7 +74,30 @@ function oneDGA(element) {
             .attr("id", "popSize")
             .text(popSize);
 
-        var p = holder.append("p")
+        p = holder.append("p")
+        p.append("strong").text("Parent Selection:");
+        p.append("br");
+
+        p.append("input")
+            .attr("type", "radio")
+            .attr("name", "findParent")
+            .attr("value", "findRandomParent")
+            .attr("checked", "false")
+            .on("click", function() { findParent = findRandomParent; } );
+        p.append("label")
+            .text(" Random Parent (single parent selected at random)");
+
+        p.append("br");
+        p.append("input")
+            .attr("type", "radio")
+            .attr("name", "findParent")
+            .attr("value", "findBestParent")
+            .attr("checked", "true")
+            .on("click", function() { findParent = findBestParent; } );
+        p.append("label")
+            .text(" Best Parent (only the fittest gets to reproduce)");
+
+        p = holder.append("p")
             .text("Mutation distance: ")
         p.append("input")
             .attr("type", "range")
@@ -90,6 +113,19 @@ function oneDGA(element) {
             .text(mutationRate);
 
         p = holder.append("p")
+        p.append("strong").text("Selection Algorithm:");
+        p.append("br");
+
+        p.append("input")
+            .attr("type", "radio")
+            .attr("name", "selection")
+            .attr("value", "randomSelection")
+            .attr("checked", "true")
+            .on("click", function() { selection = randomSelection; } );
+        p.append("label")
+            .text(" Random selection (just kill something at random)");
+
+        p.append("br");
         p.append("input")
             .attr("type", "radio")
             .attr("name", "selection")
@@ -225,6 +261,11 @@ function oneDGA(element) {
         return pop.filter(function(p) { return p.id != loser.id; })
     }
 
+    function randomSelection(pop) {
+        var unlucky = pop[Math.floor(Math.random() * pop.length)]
+        return pop.filter(function(p) { return p.id != unlucky.id; })
+    }
+
     function mutate(pos) {
         var r = -Math.log(Math.random()) * mutationRate;
         r = Math.floor(r);
@@ -236,12 +277,20 @@ function oneDGA(element) {
         }
     }
 
-    function breed(pop) {
+    function findBestParent(pop) {
         var best = pop.reduce(function(prev, current) {
             return (prev.fitness > current.fitness) ? prev : current
         });
+        return best;
+    }
 
-        var pos = mutate(best.position);
+    function findRandomParent(pop) {
+        return pop[Math.floor(Math.random() * pop.length)]
+    }
+
+    function breed(pop) {
+        var parent = findParent(pop);
+        var pos = mutate(parent.position);
         var offspring = { id: Math.random(), position: pos, fitness: fitness(pos, t) };
         pop.push(offspring);
         return pop;
@@ -256,7 +305,8 @@ function oneDGA(element) {
     var data = [];
     var population = [];
     var mutationRate = 50;
-    var selection=tournamentSelection;
+    var selection = tournamentSelection;
+    var findParent = findBestParent;
 
     t = 0;
     initialiseControls();
